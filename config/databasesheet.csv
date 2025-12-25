@@ -1,0 +1,6 @@
+database,edges_url
+GTEx Tissue Gene Expression Profiles,https://maayanlab.cloud/static/hdfs/harmonizome/data/gtextissue/gene_attribute_edges.txt.gz
+HPA Tissue Gene Expression Profiles,https://maayanlab.cloud/static/hdfs/harmonizome/data/hpatissuesmrna/gene_attribute_edges.txt.gz
+ClinVar Gene-Phenotype Associations 2025,https://maayanlab.cloud/static/hdfs/harmonizome/data/clinvar25/gene_attribute_edges.txt.gz
+OMIM Gene-Disease Associations,https://maayanlab.cloud/static/hdfs/harmonizome/data/omim/gene_attribute_edges.txt.gz
+GO Biological Process Annotations 2025,https://maayanlab.cloud/static/hdfs/harmonizome/data/gobp25/gene_attribute_edges.txt.gz

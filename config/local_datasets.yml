@@ -1,0 +1,42 @@
+datasets:
+  - name: GTEx_Tissue
+    path: downloaded_edges/GTEx_Tissue_Gene_Expression_Profiles/gene_attribute_edges.txt.gz
+    format: tsv
+    gene_field: source
+    fields: [target, weight]
+    output:
+      mode: json
+      count_field: GTEx_Tissue_count
+  - name: HPA_Tissue
+    path: downloaded_edges/HPA_Tissue_Gene_Expression_Profiles/gene_attribute_edges.txt.gz
+    format: tsv
+    gene_field: source
+    fields: [target, weight]
+    output:
+      mode: json
+      count_field: HPA_Tissue_count
+  # - name: GO_BP_2025
+  #   path: downloaded_edges/GO_Biological_Process_Annotations_2025/gene_attribute_edges.txt.gz
+  #   format: tsv
+  #   gene_field: Gene Symbol
+  #   # first column is an index with empty header; ignored
+  #   fields: ["GO Biological Process", "GO ID"]
+  #   output:
+  #     mode: json
+  #     count_field: GO_BP_2025_count
+  # - name: ClinVar_Gene_Phenotype_2025
+  #   path: downloaded_edges/ClinVar_Gene-Phenotype_Associations_2025/gene_attribute_edges.txt.gz
+  #   format: tsv
+  #   gene_field: Gene
+  #   fields: ["Phenotype", "Phenotype ID", "Threshold Value"]
+  #   output:
+  #     mode: json
+  #     count_field: ClinVar_count
+  # - name: OMIM_Gene_Disease
+  #   path: downloaded_edges/OMIM_Gene-Disease_Associations/gene_attribute_edges.txt.gz
+  #   format: tsv
+  #   gene_field: source
+  #   fields: [target, target_desc, weight]
+  #   output:
+  #     mode: json
+  #     count_field: OMIM_count
