@@ -5,38 +5,53 @@ datasets:
     gene_field: source
     fields: [target, weight]
     output:
-      mode: json
-      count_field: GTEx_Tissue_count
-  - name: HPA_Tissue
-    path: downloaded_edges/HPA_Tissue_Gene_Expression_Profiles/gene_attribute_edges.txt.gz
+      mode: tissues
+      tissues:
+        - uterus
+        - ovary
+        - fallopian tube
+        - vagina
+        - cervix uteri
+        - prostate
+      placeholder: NA
+  - name: HPA_Protein
+    path: downloaded_edges/HPA_Tissue_Protein_Expression_Profiles/gene_attribute_edges.txt.gz
     format: tsv
     gene_field: source
     fields: [target, weight]
     output:
-      mode: json
-      count_field: HPA_Tissue_count
-  # - name: GO_BP_2025
-  #   path: downloaded_edges/GO_Biological_Process_Annotations_2025/gene_attribute_edges.txt.gz
-  #   format: tsv
-  #   gene_field: Gene Symbol
-  #   # first column is an index with empty header; ignored
-  #   fields: ["GO Biological Process", "GO ID"]
-  #   output:
-  #     mode: json
-  #     count_field: GO_BP_2025_count
-  # - name: ClinVar_Gene_Phenotype_2025
-  #   path: downloaded_edges/ClinVar_Gene-Phenotype_Associations_2025/gene_attribute_edges.txt.gz
-  #   format: tsv
-  #   gene_field: Gene
-  #   fields: ["Phenotype", "Phenotype ID", "Threshold Value"]
-  #   output:
-  #     mode: json
-  #     count_field: ClinVar_count
-  # - name: OMIM_Gene_Disease
-  #   path: downloaded_edges/OMIM_Gene-Disease_Associations/gene_attribute_edges.txt.gz
-  #   format: tsv
-  #   gene_field: source
-  #   fields: [target, target_desc, weight]
-  #   output:
-  #     mode: json
-  #     count_field: OMIM_count
+      mode: tissues
+      tissues:
+        - endometrium
+        - cervix, uterine
+        - fallopian tube
+        - ovary
+        - vagina
+        - placenta
+        - prostate
+        - testis
+        - epididymis
+        - seminal vesicle
+      placeholder: NA
+  - name: ENCODE_HM
+    path: downloaded_edges/ENCODE_Histone_Modification_Site_Profiles/gene_attribute_edges.txt.gz
+    format: tsv
+    gene_field: source
+    fields: [target, weight]
+    output:
+      mode: cells
+      # 生殖/发育相关细胞，聚焦不孕不育：
+      # - testis/placenta：生殖/妊娠关键组织
+      # - NT2-D1：胚胎性生殖细胞系
+      # - H1-hESC/H7：胚胎干细胞
+      cells:
+        - testis
+        - placenta
+        - NT2-D1
+        - H1-hESC
+        - H7
+      # 选常见的激活型修饰，关注潜在活性区域
+      marks:
+        - H3K27ac
+        - H3K4me3
+      placeholder: NA

@@ -41,9 +41,11 @@ python3 -m pip install requests PyYAML
 ## 离线注释（annotate_local.py）
 - 输入：基因列表
   - 支持命令行 `--genes` 直接列出基因，或
-  - 通过 `--genes-file` 指定一个 TSV 文件，文件需包含列名为 `gene` 或 `基因`，其余列会原样保留。
+  - 通过 `--genes-file` 指定一个 TSV 文件，文件需包含列名为 `gene` 或 `基因`，其余列会原样保留。如列名不规范，可用 `--gene-col-index` 指定基因列序号（1-based，优先）。
 - 配置：`config/local_datasets.yml` 定义每个数据集的本地路径、基因列名、输出模式。
   - 默认每个数据集输出两列：`<name>_json`（匹配记录 JSON 序列化）和 `<name>_count`（命中条数），防止列数爆炸。
+  - 支持 `mode: tissues`（如当前 GTEx/HPA Protein），按配置的组织列表输出多列，列名形如 `<name>_<tissue>`，值为 1/-1/占位符（不输出 count 列）。
+  - 支持 `mode: cells`（当前 ENCODE_HM），按配置的 cell × mark 组合输出列，列名形如 `<name>_<cell>_<mark>`，值为 1/-1/占位符（可选 marks 过滤）。
 - 输出：TSV，行数与输入行数一致，原列 + 注释列。
 
 示例：
@@ -58,13 +60,15 @@ python3 annotate_local.py \
   --genes-file ./D121X251020ECS0001AR001_1_GATK_ACMG_exon20bp_panel.txt \
   --config config/local_datasets.yml \
   --out annotations.tsv
+# 如输入 TSV 的基因列不是常规名称，也可指定列号（1-based）：
+# --gene-col-index 3
 ```
 
 ## 扩展/定制
 - 新增数据集：在 `config/local_datasets.yml` 里添加条目，指定 `name/path/gene_field/fields/output`。
 - 输出模式：默认 `json`；如需扁平化/拼接可将 `output.mode` 设为 `join` 并配置 `join_field/sep`，或自行扩展脚本的聚合逻辑。
 - 如果想对未阈值化或标准化分值的文件进行注释，只需在配置中指向对应文件，并在 `fields` 中选择要保留的字段。
-- 当前示例配置包含：GTEx_Tissue、HPA_Tissue、GO_BP_2025（GO Biological Process）、ClinVar_Gene_Phenotype_2025、OMIM_Gene_Disease；如不需要某库，可在 YAML 中注释/删除对应段落。
+- 当前示例配置包含：GTEx_Tissue（mode=tissues）、HPA_Protein（mode=tissues）、ENCODE_HM（mode=cells，细胞/标记列表在 YAML 有中文注释），不输出 count 列；如需其他库可在 YAML 中添加/恢复。
 
 ## 已知差异
 - 网页端下载的部分 edge 文件包含标准化分值且命名更细粒度；API/CLI 下载的版本多为阈值化 ±1。根据需求选择对应文件并在配置中调整路径。

@@ -5,7 +5,8 @@ Annotate genes using local Harmonizome edge files defined in a YAML/JSON config.
 Key features
 - Reads a config listing datasets (edge file paths, gene column, fields to keep).
 - Supports input genes via CLI or a TSV file containing a column named `gene` or `基因`
-  (other columns are preserved, annotations are appended to the right).
+  (other columns are preserved, annotations are appended to the right). You can also
+  force the gene column by 1-based index via CLI.
 - Each dataset outputs one JSON column + one count column by default to avoid column explosion.
 
 Usage examples
@@ -42,7 +43,7 @@ import csv
 import gzip
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 
 try:
     import yaml  # type: ignore
@@ -108,6 +109,56 @@ def annotate(genes: List[str], config: Dict[str, Any]) -> List[Dict[str, Any]]:
                 sep = output_cfg.get("sep", "|")
                 row[f"{name}_joined"] = sep.join([h.get(join_field, "") for h in hits]) if hits else ""
                 row[count_field] = len(hits)
+            elif mode == "tissues":
+                tissue_field = output_cfg.get("tissue_field", "target")
+                value_field = output_cfg.get("value_field", "weight")
+                tissues: List[str] = output_cfg.get("tissues") or []
+                placeholder = output_cfg.get("placeholder", "NA")
+                # map tissue -> value
+                tmap: Dict[str, Any] = {}
+                for h in hits:
+                    tname = h.get(tissue_field)
+                    if tname is None:
+                        continue
+                    tmap[str(tname)] = h.get(value_field, "")
+                for t in tissues:
+                    col = f"{name}_{t.replace(' ', '_')}"
+                    row[col] = tmap.get(t, placeholder)
+            elif mode == "cells":
+                # target assumed mark_cell_genome_rep; extract mark & cell by splitting on '_'
+                cell_types: List[str] = output_cfg.get("cells") or []
+                marks_filter: List[str] = output_cfg.get("marks") or []
+                placeholder = output_cfg.get("placeholder", "NA")
+                value_field = output_cfg.get("value_field", "weight")
+                # map (cell, mark) -> value
+                cm_map: Dict[tuple, Any] = {}
+                for h in hits:
+                    tgt = h.get("target", "")
+                    parts = tgt.split("_")
+                    if len(parts) < 2:
+                        continue
+                    mark, cell = parts[0], parts[1]
+                    if marks_filter and mark not in marks_filter:
+                        continue
+                    if cell not in cell_types:
+                        continue
+                    cm_map[(cell, mark)] = h.get(value_field, "")
+                # emit columns for each cell × mark (if marks list provided) else per cell
+                if marks_filter:
+                    for c in cell_types:
+                        for m in marks_filter:
+                            col = f"{name}_{c.replace(' ', '_')}_{m}"
+                            row[col] = cm_map.get((c, m), placeholder)
+                else:
+                    for c in cell_types:
+                        col = f"{name}_{c.replace(' ', '_')}"
+                        # pick any value for that cell (ignoring mark)
+                        val = placeholder
+                        for (cell, _mark), v in cm_map.items():
+                            if cell == c:
+                                val = v
+                                break
+                        row[col] = val
             else:
                 row[f"{name}_json"] = json.dumps([], ensure_ascii=False)
                 row[count_field] = 0
@@ -126,21 +177,26 @@ def write_tsv(rows: List[Dict[str, Any]], path: Path) -> None:
             w.writerow(r)
 
 
-def read_input_table(path: Path) -> Tuple[List[Dict[str, Any]], str, List[str]]:
-    """Read TSV with a gene column named 'gene' or '基因' (case-insensitive)."""
+def read_input_table(path: Path, gene_col_index: Optional[int] = None) -> Tuple[List[Dict[str, Any]], str, List[str]]:
+    """Read TSV; prefer user-specified gene column index, else detect 'gene'/'基因'."""
     rows: List[Dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
         reader = csv.DictReader(f, delimiter="\t")
         if not reader.fieldnames:
             raise RuntimeError("Input file has no header")
-        # detect gene column
-        gene_col = None
-        for col in reader.fieldnames:
-            if col.lower() == "gene" or col == "基因":
-                gene_col = col
-                break
+        # choose gene column
+        gene_col: Optional[str] = None
+        if gene_col_index is not None:
+            if gene_col_index < 1 or gene_col_index > len(reader.fieldnames):
+                raise RuntimeError(f"gene_col_index {gene_col_index} is out of range (1..{len(reader.fieldnames)})")
+            gene_col = reader.fieldnames[gene_col_index - 1]
+        else:
+            for col in reader.fieldnames:
+                if col.lower() == "gene" or col == "基因":
+                    gene_col = col
+                    break
         if gene_col is None:
-            raise RuntimeError("Input file must have a 'gene' or '基因' column")
+            raise RuntimeError("Input file must have a 'gene' or '基因' column (or set --gene-col-index)")
         for row in reader:
             if not row.get(gene_col):
                 continue
@@ -155,6 +211,11 @@ def main() -> int:
         "--genes-file",
         help="TSV file with a header containing 'gene' or '基因'; other columns are preserved",
     )
+    ap.add_argument(
+        "--gene-col-index",
+        type=int,
+        help="1-based column index for gene column (highest priority when provided)",
+    )
     ap.add_argument("--config", default="config/local_datasets.yml", help="Config YAML/JSON path")
     ap.add_argument("--out", default="annotations.tsv", help="Output TSV path")
     args = ap.parse_args()
@@ -163,7 +224,7 @@ def main() -> int:
     gene_col = "gene"
     base_fields: List[str] = [gene_col]
     if args.genes_file:
-        base_rows, gene_col, base_fields = read_input_table(Path(args.genes_file))
+        base_rows, gene_col, base_fields = read_input_table(Path(args.genes_file), args.gene_col_index)
     genes: List[str] = []
     if args.genes:
         genes.extend(args.genes)
